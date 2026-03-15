@@ -6,6 +6,7 @@ import com.checkout.payment.gateway.validation.annotations.ValidExpirationDate;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.io.Serializable;
@@ -16,19 +17,24 @@ public record PaymentRequest(
     @ValidCreditCard @JsonProperty("card_number")
     String cardNumber,
 
-    @Min(1) @Max(12) @JsonProperty("expiry_month")
+    @Min(value = 1, message = "expiry month must be at least 1")
+    @Max(value = 12, message = "expiry month must be 12 or less")
+    @JsonProperty("expiry_month")
     int expiryMonth,
 
-    @NotNull @JsonProperty("expiry_year")
+    @Positive(message = "expiry year must be positive")
+    @JsonProperty("expiry_year")
     int expiryYear,
 
     @NotNull @ValidCurrency
     String currency,
 
-    @Positive
+    @Positive(message = "amount must be positive")
     int amount,
 
-    @Min(100) @Max(9999)
+    @Min(value = 100, message = "cvv must be at least 3 digits")
+    @Max(value = 9999, message = "cvv must be 4 digits or fewer")
+    @JsonProperty("cvv")
     int cvv
 ) implements Serializable {
 

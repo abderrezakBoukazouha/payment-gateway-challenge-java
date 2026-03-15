@@ -2,6 +2,7 @@ package com.checkout.payment.gateway.exception;
 
 import com.checkout.payment.gateway.enums.PaymentStatus;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,10 +21,15 @@ public class CommonExceptionHandler {
   private static final Logger LOG = LoggerFactory.getLogger(CommonExceptionHandler.class);
 
   @ExceptionHandler(EventProcessingException.class)
-  public ResponseEntity<Map<String, Object>> handleException(EventProcessingException ex) {
-    LOG.error("Payment id Not found {}", ex.getMessage());
-    return buildRejectedResponse("Payment id Not found, %s".formatted(ex.getMessage()),
-        HttpStatus.NOT_FOUND);
+  public ResponseEntity<Map<String, Object>> handleEventProcessException(EventProcessingException ex) {
+    LOG.error("Bad request: {}", ex.getMessage());
+    return buildRejectedResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);
+  }
+
+  @ExceptionHandler(NotFoundException.class)
+  public ResponseEntity<Map<String, Object>> handleNotFoudException(NotFoundException ex) {
+    LOG.error("Error:   {}", ex.getMessage());
+    return buildRejectedResponse(ex.getMessage(), HttpStatus.NOT_FOUND);
   }
 
   @ExceptionHandler(MissingRequestHeaderException.class)
@@ -34,15 +40,18 @@ public class CommonExceptionHandler {
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<Map<String, Object>> handleValidationErrors(
-      MethodArgumentNotValidException ex) {
-    List<String> errors = ex.getBindingResult()
-        .getFieldErrors()
-        .stream()
-        .map(error -> "%s:%s".formatted(error.getField(), error.getDefaultMessage()))
-        .toList();
+  public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    List<String> errors = new ArrayList<>();
 
-    return buildRejectedResponse(String.join(", ", errors), HttpStatus.BAD_REQUEST);
+    ex.getBindingResult().getFieldErrors().forEach(error ->
+        errors.add(error.getField() + ": " + error.getDefaultMessage()));
+
+    ex.getBindingResult().getGlobalErrors().forEach(error ->
+        errors.add("Request Body: " + error.getDefaultMessage()));
+
+    String reason = String.join(", ", errors);
+
+    return buildRejectedResponse(reason, HttpStatus.BAD_REQUEST);
   }
 
   private ResponseEntity<Map<String, Object>> buildRejectedResponse(String reason,

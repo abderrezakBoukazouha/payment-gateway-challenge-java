@@ -21,7 +21,7 @@ class PaymentRequestValidationTest {
   }
 
   @ParameterizedTest(name = "valid row [{index}]")
-  @CsvFileSource(resources = "/payment/valid-payment-properties.csv", numLinesToSkip = 1)
+  @CsvFileSource(resources = "/payment/valid-payment-data.csv", numLinesToSkip = 1)
   void givenValidPaymentDataThenDataIsValidated(
       String firstName,
       String lastName,
@@ -40,7 +40,7 @@ class PaymentRequestValidationTest {
   }
 
   @ParameterizedTest(name = "invalid-prop row [{index}] expects={6}")
-  @CsvFileSource(resources = "/payment/invalid-payment-properties.csv", numLinesToSkip = 1)
+  @CsvFileSource(resources = "/payment/invalid-payment-properties-data.csv", numLinesToSkip = 1)
   void givenInvalidPaymentDataThenValidationShouldFail(String cardNumber,
       int expiryMonth,
       int expiryYear,
@@ -61,7 +61,7 @@ class PaymentRequestValidationTest {
   }
 
   @ParameterizedTest(name = "invalid-class row [{index}]")
-  @CsvFileSource(resources = "/payment/invalid-expiration-card-date.csv", numLinesToSkip = 1)
+  @CsvFileSource(resources = "/payment/invalid-expiration-card-date-data.csv", numLinesToSkip = 1)
   void givenInvalidExpirationDateThenValidationShouldFail(String cardNumber,
       int expiryMonth,
       int expiryYear,

@@ -14,7 +14,7 @@ import java.lang.annotation.Target;
 @Constraint(validatedBy = CreditCardRule.class)
 public @interface ValidCreditCard {
 
-  String message() default "The currency is invalid";
+  String message() default "must be 14-19 characters and only contain digits";
 
   Class<?>[] groups() default {};
 

@@ -10,7 +10,7 @@ class CreditCardHiderServiceTest {
   final CreditCardHiderService service = new CreditCardHiderService();
 
   @ParameterizedTest(name = "invalid-class row [{index}]")
-  @CsvFileSource(resources = "/payment/valid-payment-properties.csv", numLinesToSkip = 1)
+  @CsvFileSource(resources = "/payment/valid-payment-data.csv", numLinesToSkip = 1)
   void whenHidingCreditCardNumberThenHideAllExceptLastFour(String firstName, String lastName, String creditCardNumber) {
 
     Assertions.assertTrue(service.hide(creditCardNumber).matches(CARD_HIDING_REGEX_VALIDATION));

@@ -13,7 +13,7 @@ import java.lang.annotation.Target;
 @Constraint(validatedBy = CurrencyRule.class)
 public @interface ValidCurrency {
 
-  String message() default "The currency is invalid";
+  String message() default "must be valid currency";
 
   Class<?>[] groups() default {};
 

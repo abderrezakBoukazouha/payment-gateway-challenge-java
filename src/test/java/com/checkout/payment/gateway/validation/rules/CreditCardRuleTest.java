@@ -9,7 +9,7 @@ class CreditCardRuleTest {
   CreditCardRule creditCardRule = new CreditCardRule();
 
   @ParameterizedTest
-  @CsvFileSource(resources = "/payment/valid-payment-properties.csv", numLinesToSkip = 1)
+  @CsvFileSource(resources = "/payment/valid-payment-data.csv", numLinesToSkip = 1)
   void givenValidCreditCard_thenValidateCreditCard(String firstName, String lastName,
       String creditCardNumber) {
     Assertions.assertTrue(creditCardRule.isValid(creditCardNumber, null));

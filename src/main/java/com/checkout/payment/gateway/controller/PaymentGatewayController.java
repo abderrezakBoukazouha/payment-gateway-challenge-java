@@ -1,6 +1,6 @@
 package com.checkout.payment.gateway.controller;
 
-import com.checkout.payment.gateway.exception.EventProcessingException;
+import com.checkout.payment.gateway.exception.NotFoundException;
 import com.checkout.payment.gateway.model.PaymentRequest;
 import com.checkout.payment.gateway.model.PostPaymentResponse;
 import com.checkout.payment.gateway.service.PaymentGatewayService;
@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("v1")
+@RequestMapping("api/v1")
 public class PaymentGatewayController {
 
   private final PaymentGatewayService paymentGatewayService;
@@ -30,10 +30,10 @@ public class PaymentGatewayController {
   @GetMapping("/payment/{id}")
   public PostPaymentResponse getPostPaymentEventById(@PathVariable UUID id) {
     return paymentGatewayService.getPaymentById(id)
-        .orElseThrow(() -> new EventProcessingException("Invalid ID : %s".formatted(id)));
+        .orElseThrow(() -> new NotFoundException("Payment ID not found : %s".formatted(id)));
   }
 
-  @PostMapping("/payment")
+  @PostMapping("/payments")
   public CompletableFuture<ResponseEntity<PostPaymentResponse>> processPaymentWithId(
       @RequestHeader(value = "X-Idempotency-Key") String idempotencyKey,
       @RequestBody @Valid PaymentRequest paymentRequest) {

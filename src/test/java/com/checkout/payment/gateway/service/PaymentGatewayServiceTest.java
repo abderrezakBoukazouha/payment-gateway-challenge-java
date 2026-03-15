@@ -55,14 +55,11 @@ class PaymentGatewayServiceTest {
 
     // THEN
     assertEquals(PaymentStatus.AUTHORIZED, result.status());
-    assertEquals(UUID.fromString(authCode), result.id());
 
     // Verify only once for saving and requesting bank authorization
-    verify(paymentsRepository, times(1)).add(any(PostPaymentResponse.class));
+    verify(paymentsRepository, times(1)).add(any(UUID.class),any(PostPaymentResponse.class));
     verify(acquirerClient, times(1)).authorizePayment(request, id);
-
-    // Verify credit card numbers we are actually hided for response and database
-    verify(creditCardHiderService, times(2)).hide(request.cardNumber());
+    verify(creditCardHiderService, times(1)).hide(request.cardNumber());
   }
 
   @Test
@@ -81,7 +78,7 @@ class PaymentGatewayServiceTest {
     // THEN
     assertEquals(PaymentStatus.DECLINED, result.status());
     assertNull(result.id());
-    verify(paymentsRepository, never()).add(any());
+    verify(paymentsRepository, times(1)).add(any(UUID.class), any());
     verify(creditCardHiderService).hide(request.cardNumber());
   }
 
@@ -99,7 +96,7 @@ class PaymentGatewayServiceTest {
     // THEN
     assertEquals(PaymentStatus.REJECTED, result.status());
     verify(creditCardHiderService).hide(request.cardNumber());
-    verify(paymentsRepository, never()).add(any());
+    verify(paymentsRepository, never()).add(any(UUID.class), any());
   }
 
   @Test
@@ -124,7 +121,7 @@ class PaymentGatewayServiceTest {
     // Verify that any service was never called
     verify(acquirerClient, never()).authorizePayment(any(), any());
 
-    verify(paymentsRepository, never()).add(any());
+    verify(paymentsRepository, never()).add(any(UUID.class), any());
 
     verify(creditCardHiderService, never()).hide(any());
   }

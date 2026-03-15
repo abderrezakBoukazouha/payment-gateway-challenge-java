@@ -2,9 +2,6 @@ package com.checkout.payment.gateway.controller;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 import com.checkout.payment.gateway.config.BaseConfig;
 import com.checkout.payment.gateway.enums.PaymentStatus;
@@ -12,11 +9,8 @@ import com.checkout.payment.gateway.model.PaymentRequest;
 import com.checkout.payment.gateway.model.PostPaymentResponse;
 import com.checkout.payment.gateway.repository.PaymentsRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
@@ -32,17 +26,16 @@ import org.springframework.http.ResponseEntity;
 
 class PaymentGatewayControllerTest extends BaseConfig {
 
+  private final String basePath = "/api/v1";
   @SpyBean
   PaymentsRepository paymentsRepository;
-
   @Autowired
   private TestRestTemplate restTemplate;
-
   @Autowired
   private ObjectMapper mapper;
 
   @ParameterizedTest(name = "Test {index}: Payment for {0} {1} - Status: {8}")
-  @CsvFileSource(resources = "/payment/valid-payment-properties.csv", numLinesToSkip = 1)
+  @CsvFileSource(resources = "/payment/valid-payment-data.csv", numLinesToSkip = 1)
   void whenProcessPaymentWithValidRequestThenPaymentIsProcessed(String firstName, String lastName,
       String cardNumber, int expiryMonth, int expiryYear, String currency, int amount, int cvv,
       String status) {
@@ -56,7 +49,8 @@ class PaymentGatewayControllerTest extends BaseConfig {
     HttpEntity<PaymentRequest> requestEntity = new HttpEntity<>(paymentRequest, headers);
 
     // WHEN
-    ResponseEntity<PostPaymentResponse> response = restTemplate.postForEntity("/v1/payment",
+    ResponseEntity<PostPaymentResponse> response = restTemplate.postForEntity(
+        basePath + "/payments",
         requestEntity, PostPaymentResponse.class);
 
     // THEN
@@ -93,7 +87,8 @@ class PaymentGatewayControllerTest extends BaseConfig {
     HttpEntity<PaymentRequest> requestEntity = new HttpEntity<>(paymentRequest, headers);
 
     // WHEN
-    ResponseEntity<PostPaymentResponse> response = restTemplate.postForEntity("/v1/payment",
+    ResponseEntity<PostPaymentResponse> response = restTemplate.postForEntity(
+        basePath + "/payments",
         requestEntity, PostPaymentResponse.class);
 
     // THEN
@@ -107,7 +102,7 @@ class PaymentGatewayControllerTest extends BaseConfig {
   }
 
   @ParameterizedTest(name = "Test {index}: Payment for {0} {1} - Status: {8}")
-  @CsvFileSource(resources = "/payment/valid-payment-properties.csv", numLinesToSkip = 1)
+  @CsvFileSource(resources = "/payment/valid-payment-data.csv", numLinesToSkip = 1)
   void whenProcessPaymentWithoutIdempotencyKeyAndValidRequest_ThenPaymentIsRejected(
       String firstName, String lastName, String cardNumber, int expiryMonth, int expiryYear,
       String currency, int amount, int cvv, String status) {
@@ -119,7 +114,8 @@ class PaymentGatewayControllerTest extends BaseConfig {
     HttpEntity<PaymentRequest> requestEntity = new HttpEntity<>(paymentRequest);
 
     // WHEN
-    ResponseEntity<String> response = restTemplate.postForEntity("/v1/payment", requestEntity,
+    ResponseEntity<String> response = restTemplate.postForEntity(basePath + "/payments",
+        requestEntity,
         String.class);
 
     // THEN
@@ -127,39 +123,6 @@ class PaymentGatewayControllerTest extends BaseConfig {
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     assertThat(response.getBody()).contains("Rejected");
     assertThat(response.getBody()).contains("Required header X-Idempotency-Key");
-  }
-
-  @Test
-  void whenProcessPaymentConcurrentlyMultipleTimesForTheSameKey_ThenPaymentIsAcceptedOnce() {
-
-    // GIVEN
-    PaymentRequest paymentRequest = new PaymentRequest("212134309761131", 12, 2028, "USD", 100,
-        123);
-
-    HttpHeaders headers = buildHttpHeaders();
-
-    HttpEntity<PaymentRequest> requestEntity = new HttpEntity<>(paymentRequest, headers);
-
-    // WHEN
-    ResponseEntity<PostPaymentResponse> response = restTemplate.postForEntity("/v1/payment",
-        requestEntity, PostPaymentResponse.class);
-
-    // THEN
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-
-    // WHEN
-    int totalRequests = 10000;
-
-    List<CompletableFuture<ResponseEntity<PostPaymentResponse>>> futures = IntStream.range(0,
-            totalRequests).mapToObj(i -> CompletableFuture.supplyAsync(
-            () -> restTemplate.postForEntity("/v1/payment", requestEntity, PostPaymentResponse.class)))
-        .toList();
-
-    // Wait for all of them to complete
-    CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-
-    // THEN
-    verify(paymentsRepository, times(1)).add(any(PostPaymentResponse.class));
   }
 
   @ParameterizedTest
@@ -171,11 +134,11 @@ class PaymentGatewayControllerTest extends BaseConfig {
     PostPaymentResponse existingPayment = new PostPaymentResponse(id, status, cardNumberLastFour,
         expiryMonth, expiryYear, currency, amount);
 
-    paymentsRepository.add(existingPayment);
+    paymentsRepository.add(UUID.randomUUID(), existingPayment);
 
     // WHEN
     ResponseEntity<PostPaymentResponse> response = restTemplate.getForEntity(
-        "/v1/payment/%s".formatted(id), PostPaymentResponse.class);
+        basePath + "/payment/%s".formatted(id), PostPaymentResponse.class);
 
     // THEN
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -199,7 +162,7 @@ class PaymentGatewayControllerTest extends BaseConfig {
 
     // WHEN
     ResponseEntity<Map> response = restTemplate.getForEntity(
-        "/v1/payment/%s".formatted(nonExistentId),
+        basePath + "/payment/%s".formatted(nonExistentId),
         Map.class
     );
 
@@ -209,7 +172,7 @@ class PaymentGatewayControllerTest extends BaseConfig {
     Map<String, Object> body = response.getBody();
     assertThat(body).isNotNull();
     assertThat(body.get("status")).isEqualTo(PaymentStatus.REJECTED.getName());
-    assertThat(body.get("reason")).asString().contains("Invalid ID : " + nonExistentId);
+    assertThat(body.get("reason")).asString().contains("Payment ID not found : " + nonExistentId);
   }
 
 

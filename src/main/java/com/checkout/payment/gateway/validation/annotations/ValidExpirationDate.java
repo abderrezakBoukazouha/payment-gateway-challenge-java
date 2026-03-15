@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = ExpirationDateRule.class)
 public @interface ValidExpirationDate {
-  String message() default "The card has expired";
+  String message() default "The card is expired";
   Class<?>[] groups() default {};
   Class<? extends Payload>[] payload() default {};
 }
