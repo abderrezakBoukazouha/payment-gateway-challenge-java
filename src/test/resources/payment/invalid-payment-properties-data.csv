@@ -1,0 +1,5 @@
+cardNumber,expiryMonth,expiryYear,currency,amount,cvv,expectedProperty
+123,12,2026,USD,100,123,cardNumber
+4242424242424242,12,2026,USD,0,123,amount
+4242424242424242,12,2026,usdx,100,123,currency
+4242424242424242,12,2026,USD,100,12,cvv

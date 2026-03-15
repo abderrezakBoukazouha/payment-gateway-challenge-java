@@ -1,0 +1,3 @@
+cardNumber,expiryMonth,expiryYear,currency,amount,cvv
+4242424242424242,1,2020,USD,100,123
+5555555555554444,6,2022,EUR,50,321
