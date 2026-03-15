@@ -1,6 +1,7 @@
 package com.checkout.payment.gateway.validation.rules;
 
 import com.checkout.payment.gateway.model.PaymentRequest;
+import java.time.Year;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -11,31 +12,45 @@ class ExpirationDateRuleTest {
 
 
   @ParameterizedTest
-  @CsvSource({"2024,12", "2019,07", "2022,3", "2026,01"})
-  void whenExpirationIsInThePastThenValidationIsFalse(String expirationYear,
-      String expirationMonth) {
+  @CsvSource({"1,12", "2,07", "3,3", "5,01"})
+  void whenExpirationIsInThePast_ThenDoNotValidate(int minusExpirationYear,
+      int expirationMonth) {
 
-    PaymentRequest paymentRequest = new PaymentRequest(null, Integer.parseInt(expirationMonth),
+    String expirationYear = Year.now().minusYears(minusExpirationYear).toString();
+    PaymentRequest paymentRequest = new PaymentRequest(null, expirationMonth,
         Integer.parseInt(expirationYear), null,
-        0, null);
+        0, 100);
 
     Assertions.assertFalse(rule.isValid(paymentRequest, null),
         "should not validate expiration date in the past");
   }
 
   @ParameterizedTest
-  @CsvSource({"2028,12", "2029,07", "2030,3"})
-  void whenExpirationIsInTheFutureThenValidate(String expirationYear,
+  @CsvSource({"1,12", "5,07", "7,3"})
+  void whenExpirationIsInTheFuture_ThenValidate(int plusExpirationYear,
       String expirationMonth) {
+
+    String expirationYear = Year.now().plusYears(plusExpirationYear).toString();
 
     PaymentRequest paymentRequest = new PaymentRequest(null, Integer.parseInt(expirationMonth),
         Integer.parseInt(expirationYear), null,
-        0, null);
+        0, 100);
 
     Assertions.assertTrue(rule.isValid(paymentRequest, null),
         "should not validate expiration date in the past");
   }
 
-  //TODO: should we validate future 30 50, 100 years ?
+  @ParameterizedTest
+  @CsvSource({"15,12", "25,07"})
+  void whenExpirationIsInTheFarFuture_ThenDoNotValidate(int plusExpirationYear,
+      String expirationMonth) {
 
+    String expirationYear = Year.now().plusYears(plusExpirationYear).toString();
+    PaymentRequest paymentRequest = new PaymentRequest(null, Integer.parseInt(expirationMonth),
+        Integer.parseInt(expirationYear), null,
+        0, 100);
+
+    Assertions.assertFalse(rule.isValid(paymentRequest, null),
+        "should not validate expiration date in the far future");
+  }
 }

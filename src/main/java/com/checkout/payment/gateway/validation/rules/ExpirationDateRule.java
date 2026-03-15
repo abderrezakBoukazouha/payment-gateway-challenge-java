@@ -6,9 +6,13 @@ import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import java.time.DateTimeException;
 import java.time.YearMonth;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExpirationDateRule implements
     ConstraintValidator<ValidExpirationDate, PaymentRequest> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ExpirationDateRule.class);
 
   @Override
   public boolean isValid(PaymentRequest request, ConstraintValidatorContext context) {
@@ -16,9 +20,14 @@ public class ExpirationDateRule implements
     YearMonth now = YearMonth.now();
     try {
       YearMonth expiry = YearMonth.of(request.expiryYear(), request.expiryMonth());
-      return expiry.isAfter(now) || expiry.equals(now);
+
+      YearMonth maxAllowed = now.plusYears(10);
+
+      return (expiry.isAfter(now) || expiry.equals(now)) && !expiry.isAfter(maxAllowed);
     } catch (DateTimeException e) {
-      //TODO: see if we can improve it the logs
+      LOG.error(
+          "Error in parsing credit card %s and year %s. error:  %s".formatted(request.expiryMonth(),
+              request.expiryYear(), e.getMessage()));
       return false;
     }
   }

@@ -2,9 +2,10 @@ package com.checkout.payment.gateway.model;
 
 import com.checkout.payment.gateway.enums.PaymentStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.annotation.Nullable;
 import java.util.UUID;
 
-public record PostPaymentResponse(UUID id,
+public record PostPaymentResponse(@Nullable UUID id,
                                   PaymentStatus status,
                                   @JsonProperty("card_number_last_four") String cardNumberLastFour,
                                   @JsonProperty("expiry_month") int expiryMonth,

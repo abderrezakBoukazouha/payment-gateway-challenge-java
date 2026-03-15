@@ -16,15 +16,13 @@ repositories {
 }
 
 dependencies {
-  implementation 'org.springframework.boot:spring-boot-starter-web'
+  // exclude spring-boot-starter-logging from web, then add the log4j2 starter
+  implementation('org.springframework.boot:spring-boot-starter-web')
   implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
-  implementation 'org.springframework.retry:spring-retry'
-  implementation 'org.springframework.boot:spring-boot-starter-aop'
   implementation 'org.springframework.boot:spring-boot-starter-validation'
 
-  testImplementation 'org.springframework.boot:spring-boot-starter-test'
-
   testImplementation platform('org.testcontainers:testcontainers-bom:1.19.0')
+  testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
   testImplementation 'org.testcontainers:testcontainers'
   testImplementation 'org.testcontainers:junit-jupiter'

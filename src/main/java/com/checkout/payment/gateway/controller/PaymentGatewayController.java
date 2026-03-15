@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@RestController("api")
+@RestController
 @RequestMapping("v1")
 public class PaymentGatewayController {
 
@@ -28,10 +28,9 @@ public class PaymentGatewayController {
   }
 
   @GetMapping("/payment/{id}")
-  public ResponseEntity<PostPaymentResponse> getPostPaymentEventById(@PathVariable UUID id) {
-    PostPaymentResponse payment = paymentGatewayService.getPaymentById(id)
-        .orElseThrow(() -> new EventProcessingException("Invalid ID"));
-    return new ResponseEntity<>(payment, HttpStatus.OK);
+  public PostPaymentResponse getPostPaymentEventById(@PathVariable UUID id) {
+    return paymentGatewayService.getPaymentById(id)
+        .orElseThrow(() -> new EventProcessingException("Invalid ID : %s".formatted(id)));
   }
 
   @PostMapping("/payment")
@@ -40,6 +39,10 @@ public class PaymentGatewayController {
       @RequestBody @Valid PaymentRequest paymentRequest) {
 
     return paymentGatewayService.processPayment(paymentRequest, idempotencyKey)
-        .thenApply(ResponseEntity::ok);
+        .thenApply(response -> switch (response.status()) {
+          case AUTHORIZED -> new ResponseEntity<>(response, HttpStatus.CREATED);
+          case DECLINED -> new ResponseEntity<>(response, HttpStatus.PAYMENT_REQUIRED);
+          case REJECTED -> new ResponseEntity<>(response, HttpStatus.SERVICE_UNAVAILABLE);
+        });
   }
 }

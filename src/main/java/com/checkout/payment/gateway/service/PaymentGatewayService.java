@@ -1,7 +1,7 @@
 package com.checkout.payment.gateway.service;
 
 import com.checkout.payment.gateway.enums.PaymentStatus;
-import com.checkout.payment.gateway.model.BankAuthorizationResponse;
+import com.checkout.payment.gateway.model.ClientAuthorizationResponse;
 import com.checkout.payment.gateway.model.PaymentRequest;
 import com.checkout.payment.gateway.model.PostPaymentResponse;
 import com.checkout.payment.gateway.repository.PaymentsRepository;
@@ -21,14 +21,14 @@ public class PaymentGatewayService {
 
   private final CreditCardHiderService creditCardHiderService;
 
-  private final BankAuthorizationService bankAuthorizationService;
+  private final AcquirerClient acquirerClient;
 
   public PaymentGatewayService(PaymentsRepository paymentsRepository,
       CreditCardHiderService creditCardHiderService,
-      BankAuthorizationService bankAuthorizationService) {
+      AcquirerClient acquirerClient) {
     this.paymentsRepository = paymentsRepository;
     this.creditCardHiderService = creditCardHiderService;
-    this.bankAuthorizationService = bankAuthorizationService;
+    this.acquirerClient = acquirerClient;
   }
 
   public Optional<PostPaymentResponse> getPaymentById(UUID id) {
@@ -36,39 +36,51 @@ public class PaymentGatewayService {
     return paymentsRepository.get(id);
   }
 
-  public CompletableFuture<PostPaymentResponse> processPayment(PaymentRequest request, String key) {
-    UUID id = UUID.fromString(key);
+  public CompletableFuture<PostPaymentResponse> processPayment(PaymentRequest request,
+      String idempotencyKey) {
+    UUID idempotencyKeyUuid = UUID.fromString(idempotencyKey);
 
-    // Get Payment from local database, or else request
-    return getPaymentById(id).map(CompletableFuture::completedFuture).orElseGet(
-        () -> bankAuthorizationService.authorizePayment(request, id)
-            .thenApply(
-                bankAuthorizationResponse -> handleBankResponse(bankAuthorizationResponse, request, key)));
+    // find the Payment in the local database, if not request a new payment to the bank
+    return getPaymentById(idempotencyKeyUuid)
+        .map(CompletableFuture::completedFuture)
+        .orElseGet(
+            () -> acquirerClient.authorizePayment(request, idempotencyKeyUuid)
+                .thenApply(
+                    clientAuthorizationResponse -> handleBankResponse(clientAuthorizationResponse,
+                        request,
+                        idempotencyKey)))
+        // if the bank reject the payment, return REJECTED response
+        .exceptionally(ex -> handleBankResponseError(request));
   }
 
   private PostPaymentResponse handleBankResponse(
-      BankAuthorizationResponse bankAuthorizationResponse,
+      ClientAuthorizationResponse clientAuthorizationResponse,
       PaymentRequest paymentRequest, String idempotencyKey) {
 
     PaymentStatus paymentStatus =
-        bankAuthorizationResponse.authorized() ? PaymentStatus.AUTHORIZED : PaymentStatus.DECLINED;
+        clientAuthorizationResponse.authorized() ? PaymentStatus.AUTHORIZED : PaymentStatus.DECLINED;
 
-    PostPaymentResponse paymentResponse = buildPaymentResponse(paymentRequest, idempotencyKey,
-        paymentStatus);
-
-    // Save to DB if it was a new successful process
-    if (paymentStatus == PaymentStatus.AUTHORIZED) {
+    // Save to database if it was a new successful process
+    if (PaymentStatus.AUTHORIZED.equals(paymentStatus)) {
       LOG.info("Payment {} authorized by bank. Saving to registry.", idempotencyKey);
-      paymentsRepository.add(paymentResponse);
+
+      paymentsRepository.add(buildPaymentStructure(paymentRequest, idempotencyKey, paymentStatus));
     }
 
-    return paymentResponse;
+    return buildPaymentStructure(paymentRequest, clientAuthorizationResponse.authorizationCode(),
+        paymentStatus);
   }
 
-  private PostPaymentResponse buildPaymentResponse(PaymentRequest paymentRequest,
-      String idempotencyKey, PaymentStatus paymentStatus) {
+  private PostPaymentResponse handleBankResponseError(PaymentRequest request) {
+    return buildPaymentStructure(request, "", PaymentStatus.REJECTED);
+  }
 
-    return new PostPaymentResponse(UUID.fromString(idempotencyKey), paymentStatus,
+  private PostPaymentResponse buildPaymentStructure(PaymentRequest paymentRequest,
+      String id, PaymentStatus paymentStatus) {
+    UUID bankAuthorizationCodeResponse =
+        id.isEmpty() ? null : UUID.fromString(id);
+
+    return new PostPaymentResponse(bankAuthorizationCodeResponse, paymentStatus,
         creditCardHiderService.hide(paymentRequest.cardNumber()), paymentRequest.expiryMonth(),
         paymentRequest.expiryYear(), paymentRequest.currency(), paymentRequest.amount());
   }

@@ -7,7 +7,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
@@ -17,23 +16,20 @@ public abstract class BaseConfig {
 
   private static final Logger LOG = LoggerFactory.getLogger(BaseConfig.class);
 
-  static final GenericContainer<?> montobank;
+  static final GenericContainer<?> mountebank;
 
   static {
-    montobank = new GenericContainer<>(DockerImageName.parse("bbyars/mountebank:2.8.1"))
-        // Map the ports defined in your compose
-        .withExposedPorts(2525, 8080)
+    mountebank = new GenericContainer<>(DockerImageName.parse("bbyars/mountebank:2.8.1"))
 
-        // Map your local resource file to the path expected by the command
+        .withExposedPorts(2525, 8080)
         .withCopyFileToContainer(MountableFile.forClasspathResource("config/bank_simulator.ejs"),
             "/imposters/bank_simulator.ejs")
-        .withLogConsumer(new Slf4jLogConsumer(LOG))
-        // Set the command exactly as in your docker-compose
+
         .withCommand("--configfile /imposters/bank_simulator.ejs --allowInjection --loglevel debug");
 
-    montobank.start();
+    mountebank.start();
 
-    LOG.info("montobank manager port : {} , server Port : {}", montobank.getMappedPort(2525), montobank.getMappedPort(8080) );
+    LOG.info("mountebank manager port : {} , server Port : {}", mountebank.getMappedPort(2525), mountebank.getMappedPort(8080) );
 
   }
 
@@ -41,7 +37,7 @@ public abstract class BaseConfig {
   static void configureProperties(DynamicPropertyRegistry registry) {
     // This maps your app's "bank.api.url" to the dynamic Testcontainers port
     registry.add("bank.api.url",
-        () -> "http://%s:%s".formatted(montobank.getHost(), montobank.getMappedPort(8080)));
+        () -> "http://%s:%s".formatted(mountebank.getHost(), mountebank.getMappedPort(8080)));
   }
 
 }

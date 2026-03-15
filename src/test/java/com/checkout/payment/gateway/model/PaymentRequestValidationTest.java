@@ -22,12 +22,15 @@ class PaymentRequestValidationTest {
 
   @ParameterizedTest(name = "valid row [{index}]")
   @CsvFileSource(resources = "/payment/valid-payment-properties.csv", numLinesToSkip = 1)
-  void givenValidPaymentDataThenDataIsValidated(String cardNumber,
+  void givenValidPaymentDataThenDataIsValidated(
+      String firstName,
+      String lastName,
+      String cardNumber,
       int expiryMonth,
       int expiryYear,
       String currency,
       int amount,
-      String cvv) {
+      int cvv) {
 
     PaymentRequest paymentRequest = new PaymentRequest(cardNumber, expiryMonth, expiryYear,
         currency, amount, cvv);
@@ -43,7 +46,7 @@ class PaymentRequestValidationTest {
       int expiryYear,
       String currency,
       int amount,
-      String cvv,
+      int cvv,
       String expectedProperty) {
 
     PaymentRequest paymentRequest = new PaymentRequest(cardNumber, expiryMonth, expiryYear,
@@ -64,7 +67,7 @@ class PaymentRequestValidationTest {
       int expiryYear,
       String currency,
       int amount,
-      String cvv) {
+      int cvv) {
 
     PaymentRequest req = new PaymentRequest(cardNumber, expiryMonth, expiryYear, currency, amount,
         cvv);
