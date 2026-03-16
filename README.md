@@ -7,8 +7,7 @@ This is a humble contribution of the Checkout.com Payment Gateway challenge. The
 * **Docker & Docker Compose** (for integration tests and running the environment)
 
 ## Entry point
-## Entry point
-
+At root: 
 * for build : `./gradlew clean build`
 * for test : `./gradlew clean test`
 * for running the application : ` ./gradlew bootRun`
