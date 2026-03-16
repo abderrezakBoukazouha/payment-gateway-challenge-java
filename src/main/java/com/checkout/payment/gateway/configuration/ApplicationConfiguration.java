@@ -1,6 +1,8 @@
 package com.checkout.payment.gateway.configuration;
 
+import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.time.Duration;
 import java.util.concurrent.Executor;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -21,7 +23,9 @@ public class ApplicationConfiguration {
 
   @Bean
   public ObjectMapper objectMapper() {
-    return new ObjectMapper();
+    return JsonMapper.builder()
+        .enable(JsonReadFeature.ALLOW_LEADING_ZEROS_FOR_NUMBERS)
+        .build();
   }
 
   @Bean

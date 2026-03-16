@@ -8,6 +8,7 @@ import com.checkout.payment.gateway.enums.PaymentStatus;
 import com.checkout.payment.gateway.model.PaymentRequest;
 import com.checkout.payment.gateway.model.PostPaymentResponse;
 import com.checkout.payment.gateway.repository.PaymentsRepository;
+import com.checkout.payment.gateway.service.CreditCardHiderService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import java.util.UUID;
@@ -31,17 +32,18 @@ class PaymentGatewayControllerTest extends BaseConfig {
   PaymentsRepository paymentsRepository;
   @Autowired
   private TestRestTemplate restTemplate;
+
   @Autowired
-  private ObjectMapper mapper;
+  CreditCardHiderService creditCardHiderService;
 
   @ParameterizedTest(name = "Test {index}: Payment for {0} {1} - Status: {8}")
   @CsvFileSource(resources = "/payment/valid-payment-data.csv", numLinesToSkip = 1)
   void whenProcessPaymentWithValidRequestThenPaymentIsProcessed(String firstName, String lastName,
-      String cardNumber, int expiryMonth, int expiryYear, String currency, int amount, int cvv,
+      String cardNumber, String expiryMonth, int expiryYear, String currency, int amount, int cvv,
       String status) {
 
     // GIVEN
-    PaymentRequest paymentRequest = new PaymentRequest(cardNumber, expiryMonth, expiryYear,
+    PaymentRequest paymentRequest = new PaymentRequest(cardNumber, Integer.parseInt(expiryMonth), expiryYear,
         currency, amount, cvv);
 
     HttpHeaders headers = buildHttpHeaders();
@@ -60,6 +62,7 @@ class PaymentGatewayControllerTest extends BaseConfig {
     assertThat(body.status()).isEqualTo(PaymentStatus.valueOf(status));
     assertThat(body.amount()).isEqualTo(amount);
     assertThat(body.currency()).isEqualTo(currency);
+    assertThat(body.cardNumberLastFour()).isEqualTo(creditCardHiderService.hide(cardNumber));
 
     // Verify return ID
     if (PaymentStatus.AUTHORIZED.equals(body.status())) {
@@ -98,17 +101,18 @@ class PaymentGatewayControllerTest extends BaseConfig {
     assertThat(body.status()).isEqualTo(PaymentStatus.valueOf(status));
     assertThat(body.amount()).isEqualTo(amount);
     assertThat(body.currency()).isEqualTo(currency);
+    assertThat(body.cardNumberLastFour()).isEqualTo(creditCardHiderService.hide(cardNumber));
     assertThat(body.id()).isNotNull();
   }
 
   @ParameterizedTest(name = "Test {index}: Payment for {0} {1} - Status: {8}")
   @CsvFileSource(resources = "/payment/valid-payment-data.csv", numLinesToSkip = 1)
   void whenProcessPaymentWithoutIdempotencyKeyAndValidRequest_ThenPaymentIsRejected(
-      String firstName, String lastName, String cardNumber, int expiryMonth, int expiryYear,
+      String firstName, String lastName, String cardNumber, String expiryMonth, int expiryYear,
       String currency, int amount, int cvv, String status) {
 
     // GIVEN
-    PaymentRequest paymentRequest = new PaymentRequest(cardNumber, expiryMonth, expiryYear,
+    PaymentRequest paymentRequest = new PaymentRequest(cardNumber, Integer.parseInt(expiryMonth), expiryYear,
         currency, amount, cvv);
 
     HttpEntity<PaymentRequest> requestEntity = new HttpEntity<>(paymentRequest);

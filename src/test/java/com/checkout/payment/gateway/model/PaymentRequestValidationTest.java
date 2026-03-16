@@ -26,13 +26,14 @@ class PaymentRequestValidationTest {
       String firstName,
       String lastName,
       String cardNumber,
-      int expiryMonth,
+      String expiryMonth,
       int expiryYear,
       String currency,
       int amount,
       int cvv) {
 
-    PaymentRequest paymentRequest = new PaymentRequest(cardNumber, expiryMonth, expiryYear,
+    PaymentRequest paymentRequest = new PaymentRequest(cardNumber, Integer.parseInt(expiryMonth),
+        expiryYear,
         currency, amount, cvv);
     Set<ConstraintViolation<PaymentRequest>> violations = validator.validate(paymentRequest);
 
@@ -42,14 +43,15 @@ class PaymentRequestValidationTest {
   @ParameterizedTest(name = "invalid-prop row [{index}] expects={6}")
   @CsvFileSource(resources = "/payment/invalid-payment-properties-data.csv", numLinesToSkip = 1)
   void givenInvalidPaymentDataThenValidationShouldFail(String cardNumber,
-      int expiryMonth,
+      String expiryMonth,
       int expiryYear,
       String currency,
       int amount,
       int cvv,
       String expectedProperty) {
 
-    PaymentRequest paymentRequest = new PaymentRequest(cardNumber, expiryMonth, expiryYear,
+    PaymentRequest paymentRequest = new PaymentRequest(cardNumber, Integer.parseInt(expiryMonth),
+        expiryYear,
         currency, amount, cvv);
     Set<ConstraintViolation<PaymentRequest>> violations = validator.validate(paymentRequest);
 
@@ -63,13 +65,14 @@ class PaymentRequestValidationTest {
   @ParameterizedTest(name = "invalid-class row [{index}]")
   @CsvFileSource(resources = "/payment/invalid-expiration-card-date-data.csv", numLinesToSkip = 1)
   void givenInvalidExpirationDateThenValidationShouldFail(String cardNumber,
-      int expiryMonth,
+      String expiryMonth,
       int expiryYear,
       String currency,
       int amount,
       int cvv) {
 
-    PaymentRequest req = new PaymentRequest(cardNumber, expiryMonth, expiryYear, currency, amount,
+    PaymentRequest req = new PaymentRequest(cardNumber, Integer.parseInt(expiryMonth), expiryYear,
+        currency, amount,
         cvv);
     Set<ConstraintViolation<PaymentRequest>> violations = validator.validate(req);
 
