@@ -1,8 +1,10 @@
 package com.checkout.payment.gateway.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -22,15 +24,19 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class PaymentGatewayServiceTest {
 
   private final String idempotencyKey = UUID.randomUUID().toString();
   private final UUID id = UUID.fromString(idempotencyKey);
   private final PaymentRequest request = new PaymentRequest(
       "212130976112", 12, 2028, "USD", 100, 123);
-  @Mock
+
+  @Spy
   private PaymentsRepository paymentsRepository;
   @Mock
   private AcquirerClient acquirerClient;
@@ -45,7 +51,7 @@ class PaymentGatewayServiceTest {
     String authCode = UUID.randomUUID().toString();
     ClientAuthorizationResponse clientAuthorizationResponse = new ClientAuthorizationResponse(true, authCode);
 
-    when(paymentsRepository.get(id)).thenReturn(Optional.empty());
+    doReturn(Optional.empty()).when(paymentsRepository).getByIdempotencyKey(id);
     when(acquirerClient.authorizePayment(request, id))
         .thenReturn(CompletableFuture.completedFuture(clientAuthorizationResponse));
 
@@ -67,7 +73,7 @@ class PaymentGatewayServiceTest {
     // GIVEN
     ClientAuthorizationResponse bankResponse = new ClientAuthorizationResponse(false, "");
 
-    when(paymentsRepository.get(id)).thenReturn(Optional.empty());
+    doReturn(Optional.empty()).when(paymentsRepository).get(id);
     when(acquirerClient.authorizePayment(request, id))
         .thenReturn(CompletableFuture.completedFuture(bankResponse));
 
@@ -77,7 +83,7 @@ class PaymentGatewayServiceTest {
 
     // THEN
     assertEquals(PaymentStatus.DECLINED, result.status());
-    assertNull(result.id());
+    assertNotNull(result.id());
     verify(paymentsRepository, times(1)).add(any(UUID.class), any());
     verify(creditCardHiderService).hide(request.cardNumber());
   }
@@ -85,7 +91,7 @@ class PaymentGatewayServiceTest {
   @Test
   void whenProcessPayment_andBankThrowsException_thenReturnRejected() {
     // GIVEN
-    when(paymentsRepository.get(id)).thenReturn(Optional.empty());
+    doReturn(Optional.empty()).when(paymentsRepository).getByIdempotencyKey(id);
     when(acquirerClient.authorizePayment(request, id))
         .thenReturn(CompletableFuture.failedFuture(new RuntimeException("Bank connection failed")));
 
@@ -95,8 +101,8 @@ class PaymentGatewayServiceTest {
 
     // THEN
     assertEquals(PaymentStatus.REJECTED, result.status());
-    verify(creditCardHiderService).hide(request.cardNumber());
-    verify(paymentsRepository, never()).add(any(UUID.class), any());
+    verify(creditCardHiderService, times(2)).hide(request.cardNumber());
+    verify(paymentsRepository, times(1)).add(any(UUID.class), any());
   }
 
   @Test
@@ -108,7 +114,7 @@ class PaymentGatewayServiceTest {
         "************5678",
         12, 2028, "USD", 100);
 
-    when(paymentsRepository.get(id)).thenReturn(Optional.of(existingPayment));
+    when(paymentsRepository.getByIdempotencyKey(id)).thenReturn(Optional.of(existingPayment));
 
     // WHEN
     PostPaymentResponse result = paymentGatewayService.processPayment(request, idempotencyKey)

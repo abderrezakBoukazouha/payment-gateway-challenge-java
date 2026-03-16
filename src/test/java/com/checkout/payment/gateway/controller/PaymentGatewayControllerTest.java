@@ -68,7 +68,7 @@ class PaymentGatewayControllerTest extends BaseConfig {
     }
     if (PaymentStatus.DECLINED.equals(body.status())) {
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.PAYMENT_REQUIRED);
-      assertThat(body.id()).isNull();
+      assertThat(body.id()).isNotNull();
     }
   }
 
@@ -98,7 +98,7 @@ class PaymentGatewayControllerTest extends BaseConfig {
     assertThat(body.status()).isEqualTo(PaymentStatus.valueOf(status));
     assertThat(body.amount()).isEqualTo(amount);
     assertThat(body.currency()).isEqualTo(currency);
-    assertThat(body.id()).isNull();
+    assertThat(body.id()).isNotNull();
   }
 
   @ParameterizedTest(name = "Test {index}: Payment for {0} {1} - Status: {8}")

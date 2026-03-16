@@ -33,7 +33,7 @@ public class PaymentGatewayService {
   }
 
   public Optional<PostPaymentResponse> getPaymentById(UUID id) {
-    LOG.debug("Requesting access to to payment with ID {}", id);
+    LOG.debug("Requesting access to payment with ID {}", id);
     return paymentsRepository.get(id);
   }
 
@@ -60,7 +60,7 @@ public class PaymentGatewayService {
             clientAuthorizationResponse -> handleBankResponse(clientAuthorizationResponse, request,
                 idempotencyKeyUuid)))
         // if the bank reject the payment, return REJECTED response
-        .exceptionally(ex -> handleBankResponseError(request));
+        .exceptionally(ex -> handleBankResponseError(request, idempotencyKeyUuid));
   }
 
   private PostPaymentResponse handleBankResponse(
@@ -71,18 +71,22 @@ public class PaymentGatewayService {
         clientAuthorizationResponse.authorized() ? PaymentStatus.AUTHORIZED
             : PaymentStatus.DECLINED;
 
-    UUID paymentGatewayId = (paymentStatus == PaymentStatus.AUTHORIZED) ? UUID.randomUUID() : null;
+    UUID paymentGatewayId =  UUID.randomUUID();
 
     PostPaymentResponse response = buildPaymentStructure(paymentRequest, paymentGatewayId,
         paymentStatus);
     paymentsRepository.add(idempotencyKey, response);
 
-    LOG.info("Payment processed. Status: {}, GatewayID: {}", paymentStatus, paymentGatewayId);
+    LOG.info("Payment processed with Status: {}, GatewayID: {}", paymentStatus, paymentGatewayId);
     return response;
   }
 
-  private PostPaymentResponse handleBankResponseError(PaymentRequest request) {
-    return buildPaymentStructure(request, null, PaymentStatus.REJECTED);
+  private PostPaymentResponse handleBankResponseError(PaymentRequest request, UUID idempotencyKey) {
+    UUID paymentGatewayId =  UUID.randomUUID();
+    paymentsRepository.add(idempotencyKey, buildPaymentStructure(request, paymentGatewayId,
+        PaymentStatus.DECLINED));
+    return buildPaymentStructure(request, paymentGatewayId,
+        PaymentStatus.REJECTED);
   }
 
   private PostPaymentResponse buildPaymentStructure(PaymentRequest paymentRequest, UUID id,
