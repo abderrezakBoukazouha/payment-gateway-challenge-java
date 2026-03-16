@@ -7,8 +7,13 @@ This is a humble contribution of the Checkout.com Payment Gateway challenge. The
 * **Docker & Docker Compose** (for integration tests and running the environment)
 
 ## Entry point
-Please take a look at the controller and validations logic, and Services ApiGatwayPayment service and acquiringClient later.
+## Entry point
 
+* for build : `./gradlew clean build`
+* for test : `./gradlew clean test`
+* for running the application : ` ./gradlew bootRun`
+
+please ensure mountebank is running before launching the application. 
 ## Technical Design Decisions
 
 ### Data Modeling & Validation
