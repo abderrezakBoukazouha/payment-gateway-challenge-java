@@ -84,7 +84,7 @@ public class PaymentGatewayService {
   private PostPaymentResponse handleBankResponseError(PaymentRequest request, UUID idempotencyKey) {
     UUID paymentGatewayId =  UUID.randomUUID();
     paymentsRepository.add(idempotencyKey, buildPaymentStructure(request, paymentGatewayId,
-        PaymentStatus.REJECTED));
+        PaymentStatus.DECLINED));
     return buildPaymentStructure(request, paymentGatewayId,
         PaymentStatus.REJECTED);
   }

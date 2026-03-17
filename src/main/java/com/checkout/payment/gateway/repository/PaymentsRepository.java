@@ -24,7 +24,6 @@ public class PaymentsRepository {
     LOG.debug("saving payment to local cache with idempotencyKey key {}", idempotencyKey);
     idempotencyIndex.put(idempotencyKey, payment);
 
-    // save only AUTHORIZED to the database
     if (payment.id() != null) {
       LOG.debug("saving payment to repository with payment gateway key {}", payment.id());
       payments.put(payment.id(), payment);
